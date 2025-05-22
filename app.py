@@ -21,7 +21,7 @@ st.markdown("Bienvenue dans le tableau de bord de suivi de la résistance bacté
 # Harmonisation des colonnes
 phenotypes = phenotypes[~phenotypes['week'].astype(str).str.contains("Total", na=False)]
 phenotypes['week'] = pd.to_datetime(phenotypes['week'], errors='coerce')
-other_ab = other_ab.rename(columns={"week": "Semaine"})
+other_ab = other_ab.rename(columns={"week": "Semaine", "Week": "Semaine"})
 
 # Tabs
 tabs = st.tabs([
