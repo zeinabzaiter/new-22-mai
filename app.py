@@ -94,6 +94,7 @@ with tabs[3]:
     other_ab_columns = [col for col in other_ab.columns if col.lower() not in ['semaine', 'week']]
     selected_other_ab = st.selectbox("Choisir un autre AB", other_ab_columns)
     try:
+        other_ab['week'] = pd.to_datetime(other_ab['week'])
         col_values = pd.to_numeric(other_ab[selected_other_ab], errors='coerce').dropna()
         Q1 = col_values.quantile(0.25)
         Q3 = col_values.quantile(0.75)
@@ -101,9 +102,9 @@ with tabs[3]:
         tukey_threshold = Q3 + 1.5 * IQR
         other_ab['Alarme'] = pd.to_numeric(other_ab[selected_other_ab], errors='coerce') > tukey_threshold
 
-        fig_other = px.line(other_ab, x='Semaine', y=selected_other_ab, title=f"% Résistance - {selected_other_ab}", markers=True)
+        fig_other = px.line(other_ab, x='week', y=selected_other_ab, title=f"% Résistance - {selected_other_ab}", markers=True)
         alertes = other_ab[other_ab['Alarme']]
-        fig_other.add_scatter(x=alertes['Semaine'], y=alertes[selected_other_ab], mode='markers', marker=dict(color='red', size=10), name='Alarme')
+        fig_other.add_scatter(x=alertes['week'], y=alertes[selected_other_ab], mode='markers', marker=dict(color='red', size=10), name='Alarme')
         st.plotly_chart(fig_other)
     except Exception as e:
         st.error(f"Erreur : {e}")
@@ -117,7 +118,7 @@ with tabs[4]:
     selected_ab_service = st.selectbox("Choisir un AB à analyser par service", ab_columns_service)
 
     try:
-        grouped = staph_data.groupby(['Semaine', 'DEMANDEUR'])[selected_ab_service] \
+        grouped = staph_data.groupby(['Semaine', 'LIBELLE_DEMANDEUR'])[selected_ab_service] \
             .apply(lambda x: (x == 'R').mean() * 100).reset_index()
         grouped.columns = ['Semaine', 'Service', 'Resistance (%)']
         Q1 = grouped['Resistance (%)'].quantile(0.25)
