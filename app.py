@@ -29,7 +29,8 @@ tabs = st.tabs([
     "Staph aureus - Phénotypes",
     "Staph aureus - Antibiotiques",
     "Staph aureus - Autres AB",
-    "Alertes par Service","Fiche patient"
+    "Alertes par Service",
+    "Fiche patient"
 ])
 
 # Onglet 1: Vue générale
