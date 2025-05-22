@@ -29,7 +29,7 @@ tabs = st.tabs([
     "Staph aureus - Phénotypes",
     "Staph aureus - Antibiotiques",
     "Staph aureus - Autres AB",
-    "Alertes par Service"
+    "Alertes par Service","Fiche patient"
 ])
 
 # Onglet 1: Vue générale
@@ -137,3 +137,48 @@ with tabs[4]:
         st.dataframe(grouped[grouped['Alarme']])
     except Exception as e:
         st.error(f"Erreur lors de l’analyse par service : {e}")
+# --- Onglet 6 : Fiche patient ---
+with tabs[5]:  # Onglet "Fiche patient"
+    st.subheader("📄 Fiche détaillée par patient (IPP_PASTEL)")
+
+    # Vérification des colonnes nécessaires
+    required_cols = {"LIBELLE_DEMANDEUR", "IPP_PASTEL", "LIB_GERME", "DATE_PRELEVEMENT"}
+    if not required_cols.issubset(staph_data.columns):
+        st.warning("Les colonnes suivantes sont manquantes dans staph_data : " +
+                   ", ".join(required_cols - set(staph_data.columns)))
+    else:
+        selected_service = st.selectbox("Filtrer par service :", staph_data["LIBELLE_DEMANDEUR"].dropna().unique())
+
+        patients = staph_data[staph_data["LIBELLE_DEMANDEUR"] == selected_service]["IPP_PASTEL"].dropna().unique()
+        selected_patient = st.selectbox("Choisir un patient (IPP_PASTEL) :", patients)
+
+        patient_data = staph_data[
+            (staph_data["LIBELLE_DEMANDEUR"] == selected_service) &
+            (staph_data["IPP_PASTEL"] == selected_patient)
+        ]
+
+        st.subheader("Informations générales")
+        st.dataframe(
+            patient_data[["LIB_GERME", "DATE_PRELEVEMENT", "LIBELLE_DEMANDEUR"]].drop_duplicates(),
+            use_container_width=True
+        )
+
+        st.subheader("Résultats des antibiotiques")
+        ab_cols = ["Vancomycin", "Teicoplanin", "Gentamycin", "Oxacilline", "Clindamycin", "Linezolid", "Daptomycin"]
+        available_cols = [col for col in ab_cols if col in patient_data.columns]
+
+        if available_cols:
+            ab_results = patient_data[available_cols].drop_duplicates().reset_index(drop=True)
+
+            def color_result(val):
+                if val == "S":
+                    return "background-color: limegreen; color: white"
+                elif val == "R":
+                    return "background-color: red; color: white"
+                elif pd.isna(val) or val in ["None", ""]:
+                    return "background-color: orange; color: black"
+                return ""
+
+            st.dataframe(ab_results.style.applymap(color_result), use_container_width=True)
+        else:
+            st.info("Aucune donnée d'antibiotiques à afficher pour ce patient.")
