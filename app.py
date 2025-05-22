@@ -139,48 +139,32 @@ with tabs[4]:
         st.dataframe(grouped[grouped['Alarme']])
     except Exception as e:
         st.error(f"Erreur lors de l’analyse par service : {e}")
-# --- Onglet 6 : Fiche patient ---
-with tabs[5]:  # Onglet "Fiche patient"
-    st.subheader("📄 Fiche détaillée par patient (IPP_PASTEL)")
+# Onglet 6 : Fiche patient
+with tabs[5]:
+    st.subheader("🧾 Fiche détaillée par patient (IPP_PASTEL)")
 
-    # Vérification des colonnes nécessaires
-    required_cols = {"LIBELLE_DEMANDEUR", "IPP_PASTEL", "LIB_GERME", "DATE_PRELEVEMENT"}
-    if not required_cols.issubset(staph_data.columns):
-        st.warning("Les colonnes suivantes sont manquantes dans staph_data : " +
-                   ", ".join(required_cols - set(staph_data.columns)))
-    else:
-        selected_service = st.selectbox("Filtrer par service :", staph_data["LIBELLE_DEMANDEUR"].dropna().unique())
+    # Sélection du service
+    selected_service = st.selectbox("Filtrer par service :", staph_data["LIBELLE_DEMANDEUR"].dropna().unique())
 
-        patients = staph_data[staph_data["LIBELLE_DEMANDEUR"] == selected_service]["IPP_PASTEL"].dropna().unique()
-        selected_patient = st.selectbox("Choisir un patient (IPP_PASTEL) :", patients)
+    # Filtrer les patients de ce service
+    patients = staph_data[staph_data["LIBELLE_DEMANDEUR"] == selected_service]["IPP_PASTEL"].dropna().unique()
+    selected_patient = st.selectbox("Choisir un patient (IPP_PASTEL) :", patients)
 
-        patient_data = staph_data[
-            (staph_data["LIBELLE_DEMANDEUR"] == selected_service) &
-            (staph_data["IPP_PASTEL"] == selected_patient)
-        ]
+    # Filtrage des données
+    filtered_data = staph_data[staph_data["IPP_PASTEL"] == selected_patient]
 
-        st.subheader("Informations générales")
-        st.dataframe(
-            patient_data[["LIB_GERME", "DATE_PRELEVEMENT", "LIBELLE_DEMANDEUR"]].drop_duplicates(),
-            use_container_width=True
-        )
+    # Affichage des infos générales
+    st.subheader("Informations générales")
+    st.dataframe(filtered_data[["LIB_GERME", "DATE_PRELEVEMENT", "LIBELLE_DEMANDEUR"]])
 
-        st.subheader("Résultats des antibiotiques")
-        ab_cols = ["Vancomycin", "Teicoplanin", "Gentamycin", "Oxacilline", "Clindamycin", "Linezolid", "Daptomycin"]
-        available_cols = [col for col in ab_cols if col in patient_data.columns]
+    # 🔍 Sélection des colonnes d'antibiotiques uniquement
+    ab_columns = [
+        col for col in staph_data.columns
+        if col not in ['IPP_PASTEL', 'DATE_PRELEVEMENT', 'LIBELLE_DEMANDEUR', 'LIB_GERME']
+    ]
 
-        if available_cols:
-            ab_results = patient_data[available_cols].drop_duplicates().reset_index(drop=True)
+    # Résultats antibiotiques (remplir NaN avec un symbole)
+    ab_results = filtered_data[ab_columns].fillna("–")
 
-            def color_result(val):
-                if val == "S":
-                    return "background-color: limegreen; color: white"
-                elif val == "R":
-                    return "background-color: red; color: white"
-                elif pd.isna(val) or val in ["None", ""]:
-                    return "background-color: orange; color: black"
-                return ""
-
-            st.dataframe(ab_results.style.applymap(color_result), use_container_width=True)
-        else:
-            st.info("Aucune donnée d'antibiotiques à afficher pour ce patient.")
+    st.subheader("Résultats des antibiotiques")
+    st.dataframe(ab_results)
