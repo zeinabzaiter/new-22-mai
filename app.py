@@ -168,3 +168,49 @@ with tabs[5]:
 
     st.subheader("Résultats des antibiotiques")
     st.dataframe(ab_results)
+    # --- Onglet 5 : Alertes par Service ---
+with tabs[4]:
+    st.subheader("Alertes par Service")
+
+    # Uniformiser la colonne "Semaine" si ce n'est pas déjà fait
+    staph_data['Semaine'] = pd.to_datetime(staph_data['DATE_PRELEVEMENT'], errors='coerce').dt.isocalendar().week
+
+    ab_columns = [col for col in tests_semaine.columns if col.lower() not in ['semaine', 'week']]
+    selected_ab_service = st.selectbox("Choisir un AB à analyser par service", ab_columns)
+
+    grouped = staph_data.groupby(['Semaine', 'LIBELLE_DEMANDEUR'])[selected_ab_service] \
+        .apply(lambda x: (x == 'R').mean() * 100).reset_index()
+    grouped.columns = ['Semaine', 'Service', 'Resistance (%)']
+
+    # Seuil d'alarme
+    Q1 = grouped['Resistance (%)'].quantile(0.25)
+    Q3 = grouped['Resistance (%)'].quantile(0.75)
+    IQR = Q3 - Q1
+    tukey_threshold = Q3 + 1.5 * IQR
+
+    grouped['Alarme'] = grouped['Resistance (%)'] > tukey_threshold
+
+    # Graphique Plotly
+    fig = px.scatter(
+        grouped, x='Semaine', y='Resistance (%)', color='Service', symbol='Alarme',
+        size=grouped['Alarme'].apply(lambda x: 12 if x else 6),
+        title=f"% Résistance de {selected_ab_service} par service",
+        custom_data=['Semaine']
+    )
+
+    st.plotly_chart(fig)
+
+    # Interaction utilisateur - clic sur alarme
+    from streamlit_plotly_events import plotly_events
+    clicked = plotly_events(fig, select_event=True, key="alarme_click")
+
+    if clicked:
+        semaine_clic = int(clicked[0]['customdata'][0])
+        st.markdown(f"### 🔍 Détails pour la semaine {semaine_clic}")
+
+        filtered = staph_data[staph_data['Semaine'] == semaine_clic]
+        if not filtered.empty:
+            st.dataframe(filtered[['IPP_PASTEL', 'LIBELLE_DEMANDEUR', selected_ab_service, 'DATE_PRELEVEMENT']])
+        else:
+            st.info("Aucun enregistrement trouvé pour cette semaine.")
+
