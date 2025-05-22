@@ -7,6 +7,7 @@ st.set_page_config(page_title="Surveillance RAM - Staph aureus", layout="wide")
 @st.cache_data
 def load_data():
     staph_data = pd.read_excel("staph aureus hebdomadaire excel.xlsx")
+    staph_data.columns = staph_data.columns.str.strip()
     bacteries_list = pd.read_excel("TOUS les bacteries a etudier.xlsx")
     tests_semaine = pd.read_csv("tests_par_semaine_antibiotiques_2024.csv")
     phenotypes = pd.read_excel("staph_aureus_pheno_final.xlsx")
