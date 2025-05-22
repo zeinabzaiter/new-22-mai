@@ -18,6 +18,11 @@ staph_data, bacteries_list, tests_semaine, phenotypes, other_ab = load_data()
 st.title("Surveillance Dynamique de la Résistance aux Antimicrobiens")
 st.markdown("Bienvenue dans le tableau de bord de suivi de la résistance bactérienne pour l'année 2024.")
 
+# Harmonisation des colonnes
+phenotypes = phenotypes[~phenotypes['week'].astype(str).str.contains("Total", na=False)]
+phenotypes['week'] = pd.to_datetime(phenotypes['week'], errors='coerce')
+other_ab = other_ab.rename(columns={"week": "Semaine"})
+
 # Tabs
 tabs = st.tabs([
     "Vue générale",
@@ -35,11 +40,10 @@ with tabs[0]:
 # Onglet 2: Phénotypes
 with tabs[1]:
     st.subheader("Phénotypes - Staph aureus")
-    pheno_columns = [col for col in phenotypes.columns if col.lower() not in ['semaine', 'week']]
+    pheno_columns = [col for col in phenotypes.columns if col.lower() not in ['week']]
     selected_pheno = st.selectbox("Choisir un phénotype", pheno_columns)
 
     try:
-        phenotypes['week'] = pd.to_datetime(phenotypes['week'])
         col_values = pd.to_numeric(phenotypes[selected_pheno], errors='coerce').dropna()
         if selected_pheno.upper() in ['VRSA', 'VANCOMYCIN']:
             phenotypes['Alarme'] = phenotypes[selected_pheno] > 0
@@ -94,7 +98,6 @@ with tabs[3]:
     other_ab_columns = [col for col in other_ab.columns if col.lower() not in ['semaine', 'week']]
     selected_other_ab = st.selectbox("Choisir un autre AB", other_ab_columns)
     try:
-        other_ab['week'] = pd.to_datetime(other_ab['week'])
         col_values = pd.to_numeric(other_ab[selected_other_ab], errors='coerce').dropna()
         Q1 = col_values.quantile(0.25)
         Q3 = col_values.quantile(0.75)
@@ -102,9 +105,9 @@ with tabs[3]:
         tukey_threshold = Q3 + 1.5 * IQR
         other_ab['Alarme'] = pd.to_numeric(other_ab[selected_other_ab], errors='coerce') > tukey_threshold
 
-        fig_other = px.line(other_ab, x='week', y=selected_other_ab, title=f"% Résistance - {selected_other_ab}", markers=True)
+        fig_other = px.line(other_ab, x='Semaine', y=selected_other_ab, title=f"% Résistance - {selected_other_ab}", markers=True)
         alertes = other_ab[other_ab['Alarme']]
-        fig_other.add_scatter(x=alertes['week'], y=alertes[selected_other_ab], mode='markers', marker=dict(color='red', size=10), name='Alarme')
+        fig_other.add_scatter(x=alertes['Semaine'], y=alertes[selected_other_ab], mode='markers', marker=dict(color='red', size=10), name='Alarme')
         st.plotly_chart(fig_other)
     except Exception as e:
         st.error(f"Erreur : {e}")
@@ -114,7 +117,7 @@ with tabs[4]:
     st.subheader("Alertes par Service")
     staph_data['DATE_PRELEVEMENT'] = pd.to_datetime(staph_data['DATE_PRELEVEMENT'], errors='coerce')
     staph_data['Semaine'] = staph_data['DATE_PRELEVEMENT'].dt.isocalendar().week
-    ab_columns_service = [col for col in staph_data.columns if col.lower() not in ['semaine', 'week', 'DATE_PRELEVEMENT', 'DEMANDEUR']]
+    ab_columns_service = [col for col in staph_data.columns if col.lower() not in ['semaine', 'week', 'date_prelevement', 'libelle_demandeur']]
     selected_ab_service = st.selectbox("Choisir un AB à analyser par service", ab_columns_service)
 
     try:
