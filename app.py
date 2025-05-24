@@ -31,7 +31,8 @@ tabs = st.tabs([
     "Staph aureus - Antibiotiques",
     "Staph aureus - Autres AB",
     "Alertes par Service",
-    "Fiche patient"
+    "Fiche patient",
+    "🔍 Détails Alertes"
 ])
 
 # Onglet 1: Vue générale
@@ -226,3 +227,19 @@ with st.expander("📍 Détails des alertes détectées"):
         st.dataframe(ligne_alerte.transpose())
     else:
         st.info("✅ Aucune alerte détectée pour ce type actuellement.")
+        with tabs[6]:
+    st.subheader("📍 Détails des alertes détectées")
+
+    types_alertes = [col for col in alertes_df.columns if col.startswith("Alerte")]
+    selected_type = st.selectbox("Type d'alerte", types_alertes)
+
+    alertes_detectees = alertes_df[alertes_df[selected_type] == True]
+
+    if not alertes_detectees.empty:
+        semaine_choisie = st.selectbox("Choisir une semaine d’alerte", alertes_detectees['week'].astype(str).tolist())
+        ligne_alerte = alertes_detectees[alertes_detectees['week'].astype(str) == semaine_choisie]
+        st.markdown(f"### 📅 Détails pour la semaine : `{semaine_choisie}`")
+        st.dataframe(ligne_alerte.transpose())
+    else:
+        st.info("✅ Aucune alerte détectée pour ce type actuellement.")
+
